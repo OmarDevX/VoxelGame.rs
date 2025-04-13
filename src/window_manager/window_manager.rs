@@ -9,6 +9,7 @@ pub mod windows{
         Organic,
         Balanced,
         Cubes,
+        Default,
     }
 
     #[derive(Clone)]
@@ -16,6 +17,8 @@ pub mod windows{
         pub selected_block: VoxelType,
         pub movement_speed: f32,
         pub mouse_sensitivity: f32,
+        pub selected_shader: ShaderType,
+
     }
     
     impl SandboxWindow {
@@ -24,6 +27,7 @@ pub mod windows{
                 selected_block: VoxelType::Dirt,
                 movement_speed: 1.0,
                 mouse_sensitivity: 0.1,
+                selected_shader: ShaderType::Balanced,
             }
         }
     
@@ -73,6 +77,22 @@ pub mod windows{
             ui.label("Left Click - Break Block");
             ui.label("Right Click - Place Block");
             ui.label("ESC - Toggle Mouse Capture");
+            ui.add_space(10.0);
+            ui.separator();
+            ui.add_space(10.0);
+            
+            ui.heading("Shader Selection");
+            ui.radio_value(&mut self.selected_shader, ShaderType::Balanced, "Balanced");
+            ui.radio_value(&mut self.selected_shader, ShaderType::Cubes, "Cubes");
+            ui.radio_value(&mut self.selected_shader, ShaderType::Default, "Default");
+            
+            // Disable incompatible shaders
+            ui.add_enabled(false, egui::RadioButton::new(false, "Basic (Incompatible)"));
+            ui.add_enabled(false, egui::RadioButton::new(false, "Organic (Incompatible)"));
+            
+            // Add a note about shader compatibility
+            ui.add_space(5.0);
+            ui.label(egui::RichText::new("Note: Balanced, Cubes, and Default shaders are currently compatible with this version.").small());
         }
         
     }
@@ -125,29 +145,21 @@ pub mod windows{
     pub struct MainWindow<'a> {
         pub show_sandbox_window: bool,
         pub sandbox_window: &'a mut SandboxWindow,
-        pub block_selection: BlockSelection,
-        pub movement_settings: MovementSettings,
-        pub selected_shader: ShaderType,
         pub show_settings: bool,
     }
     
     impl<'a> MainWindow<'a> {
         pub fn new(sandbox_window: &'a mut SandboxWindow) -> Self {
             Self {
-                show_sandbox_window: true,
+                show_sandbox_window: false,
                 sandbox_window,
-                block_selection: BlockSelection::new(),
-                movement_settings: MovementSettings::new(),
-                selected_shader: ShaderType::Balanced,
-                show_settings: true,
+                show_settings: false,
             }
         }
     
         pub fn ui(&mut self, ctx: &egui::Context) {
             self.desktop_ui(ctx);
-            if self.show_settings {
-                self.render(ctx);
-            }
+  
         }
     
         pub fn desktop_ui(&mut self, ctx: &egui::Context) {
@@ -179,11 +191,11 @@ pub mod windows{
             egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
                 egui::menu::bar(ui, |ui| {
                     file_menu_button(ui);
-                    ui.menu_button("View", |ui| {
-                        if ui.checkbox(&mut self.show_settings, "Settings").clicked() {
-                            ui.close_menu();
-                        }
-                    });
+                    // ui.menu_button("View", |ui| {
+                    //     if ui.checkbox(&mut self.show_settings, "Settings").clicked() {
+                    //         ui.close_menu();
+                    //     }
+                    // });
                 });
             });
         }
@@ -206,39 +218,7 @@ pub mod windows{
                 return self.sandbox_window;
         }
         
-        pub fn render(&mut self, ctx: &egui::Context) {
-            egui::Window::new("Settings")
-                .resizable(false)
-                .default_pos([400.0, 100.0])
-                .collapsible(false)
-                .show(ctx, |ui| {
-                    ui.heading("Block Selection");
-                    self.block_selection.render(ui);
-                    
-                    ui.add_space(10.0);
-                    ui.separator();
-                    ui.add_space(10.0);
-                    
-                    ui.heading("Movement Settings");
-                    self.movement_settings.render(ui);
-                    
-                    ui.add_space(10.0);
-                    ui.separator();
-                    ui.add_space(10.0);
-                    
-                    ui.heading("Shader Selection");
-                    ui.radio_value(&mut self.selected_shader, ShaderType::Balanced, "Balanced");
-                    ui.radio_value(&mut self.selected_shader, ShaderType::Cubes, "Cubes");
-                    
-                    // Disable incompatible shaders
-                    ui.add_enabled(false, egui::RadioButton::new(false, "Basic (Incompatible)"));
-                    ui.add_enabled(false, egui::RadioButton::new(false, "Organic (Incompatible)"));
-                    
-                    // Add a note about shader compatibility
-                    ui.add_space(5.0);
-                    ui.label(egui::RichText::new("Note: Only Balanced and Cubes shaders are currently compatible with this version.").small());
-                });
-        }
+
     }
     
         pub fn file_menu_button(ui: &mut Ui) {

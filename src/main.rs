@@ -693,11 +693,12 @@ fn main() {
         window.gl_swap_window();
 
         // Update shader based on selection
-        let shader_path = match main_window.selected_shader {
+        let shader_path = match main_window.sandbox_window.selected_shader {
             ShaderType::Basic => "shaders/compute_shader_basic.glsl",
             ShaderType::Organic => "shaders/compute_shader_organic.glsl",
             ShaderType::Balanced => "shaders/compute_shader_balanced.glsl",
             ShaderType::Cubes => "shaders/compute_shader_cubes.glsl",
+            ShaderType::Default => "shaders/compute_shader.glsl",
         };
         
         // Reload shader if changed

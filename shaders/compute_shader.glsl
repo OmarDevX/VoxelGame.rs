@@ -3,164 +3,157 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D screen;
 
-// World data buffer
-layout(std430, binding = 0) buffer WorldData {
-    int voxels[];  // Flattened 3D array of voxel types
-};
+// Cube data
+const int max_objects = 5;
+const vec3 objects_position[max_objects] = vec3[](
+    vec3(0.0, 0.0, 0.0),
+    vec3(2.0, 1.0, -1.0),
+    vec3(-1.5, 0.5, 2.0),
+    vec3(3.0, -0.5, 1.0),
+    vec3(-2.0, 1.5, -2.0)
+);
 
+const vec3 objects_size[max_objects] = vec3[](
+    vec3(1.0, 1.0, 1.0),
+    vec3(0.8, 0.8, 0.8),
+    vec3(1.2, 0.5, 1.0),
+    vec3(0.7, 0.7, 0.7),
+    vec3(1.0, 0.4, 0.6)
+);
+
+const vec3 objects_color[max_objects] = vec3[](
+    vec3(0.8, 0.1, 0.1),
+    vec3(0.1, 0.8, 0.1),
+    vec3(0.1, 0.1, 0.8),
+    vec3(0.8, 0.8, 0.1),
+    vec3(0.8, 0.1, 0.8)
+);
+
+// Material properties (hardcoded)
+const float roughness[max_objects] = float[](
+    0.2,  // Smooth
+    0.5,  // Medium
+    0.8,  // Rough
+    0.3,  // Semi-smooth
+    0.6   // Medium-rough
+);
+
+const float emission[max_objects] = float[](
+    0.0,  // No emission
+    0.0,
+    1.5,  // Emissive
+    0.0,
+    0.8   // Slightly emissive
+);
+
+// Camera uniforms matching compute_shader_cubes.glsl
 uniform float currentTime;
 uniform vec3 cameraPosition;
 uniform vec3 cameraDirection;
 uniform vec3 cameraUp;
 uniform vec3 cameraRight;
 uniform vec2 screenResolution;
-uniform ivec3 worldSize;  // Size of the world in chunks
+uniform vec3 skycolor;
+uniform vec3 camera_velocity;
+uniform bool is_accumulation;
 
-// Voxel types
-#define AIR 0
-#define DIRT 1
-#define GRASS 2
-#define STONE 3
-#define WOOD 4
-#define LEAVES 5
+const int bounces = 3;
+const float pi = 3.1415926535897932385;
 
-// Ray marching parameters
-#define MAX_STEPS 2048  // High precision
-#define MAX_DIST 100.0  // Much further view distance
-#define SURF_DIST 0.0001  // Small for better close-up detection
-#define CLOSE_STEP 0.01  // Fixed step size for close objects
-#define MEDIUM_STEP 0.1  // Step size for medium distance objects
-#define FAR_STEP 0.2    // Smaller step size for distant objects
-#define CLOSE_DIST 5.0  // Distance threshold for close objects
-#define MEDIUM_DIST 15.0 // Distance threshold for medium objects
+// Random number functions from compute_shader_cubes.glsl
+float hash(float n) { return fract(sin(n) * 43758.5453123); }
+float noise(vec3 x) {
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    float n = p.x + p.y * 157.0 + 113.0 * p.z;
+    return mix(mix(mix(hash(n), hash(n + 1.0), f.x),
+               mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),
+               mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+               mix(hash(n + 270.0), hash(n + 271.0), f.x), f.y), f.z);
+}
 
-// Lighting parameters
-#define AMBIENT_STRENGTH 0.5  // Simple ambient light
-#define DIFFUSE_STRENGTH 0.5  // Simple diffuse light
+vec3 random_in_unit_sphere(inout float seed) {
+    return normalize(vec3(
+        noise(vec3(seed, currentTime, seed + 1.0)) * 2.0 - 1.0,
+        noise(vec3(currentTime, seed, seed + 2.0)) * 2.0 - 1.0,
+        noise(vec3(seed + 3.0, currentTime, seed)) * 2.0 - 1.0
+    ));
+}
 
-// Function to get voxel type at a position
-float getVoxelSDF(vec3 pos, out int voxelType) {
-    // Get the base cube position
-    vec3 basePos = floor(pos);
-    vec3 fracPos = pos - basePos;
+bool intersect_cube(vec3 ro, vec3 rd, vec3 cube_pos, vec3 cube_size, inout float t) {
+    vec3 cube_min = cube_pos - cube_size * 0.5;
+    vec3 cube_max = cube_pos + cube_size * 0.5;
     
-    // Calculate chunk position
-    ivec3 chunkPos = ivec3(floor(basePos / 16.0));
+    vec3 t1 = (cube_min - ro) / rd;
+    vec3 t2 = (cube_max - ro) / rd;
+    vec3 tmin = min(t1, t2);
+    vec3 tmax = max(t1, t2);
     
-    // Calculate local position within chunk
-    vec3 localPos = mod(basePos, 16.0);
+    float tnear = max(max(tmin.x, tmin.y), tmin.z);
+    float tfar = min(min(tmax.x, tmax.y), tmax.z);
     
-    // Check if position is within world bounds
-    if (chunkPos.y == 0 && abs(chunkPos.x) <= 1 && abs(chunkPos.z) <= 1) {
-        // Convert to array index
-        int chunkIndex = (chunkPos.x + 1) + (chunkPos.z + 1) * 3;
-        int localIndex = int(localPos.x) + int(localPos.y) * 16 + int(localPos.z) * 16 * 16;
-        int index = chunkIndex * 16 * 16 * 16 + localIndex;
+    if (tnear < tfar && tfar > 0.0) {
+        if (tnear < t) {
+            t = tnear;
+            return true;
+        }
+    }
+    return false;
+}
+
+vec3 calculate_light(vec3 ro, vec3 rd, inout float seed) {
+    vec3 light = vec3(0.0);
+    vec3 contribution = vec3(1.0);
+    
+    for (int bounce = 0; bounce < bounces; bounce++) {
+        float t = 9999.0;
+        int hit_index = -1;
         
-        if (index >= 0 && index < 3 * 3 * 16 * 16 * 16) {
-            voxelType = voxels[index];
-            if (voxelType != AIR) {
-                // Simple distance field for cubes
-                vec3 center = basePos + 0.5;
-                float d = length(pos - center) - 0.5;
-                return d;
+        // Find closest cube intersection
+        for (int i = 0; i < max_objects; i++) {
+            float curr_t = t;
+            if (intersect_cube(ro, rd, objects_position[i], objects_size[i], curr_t)) {
+                if (curr_t < t) {
+                    t = curr_t;
+                    hit_index = i;
+                }
             }
         }
-    }
-    
-    voxelType = AIR;
-    return MAX_DIST;
-}
-
-// Function to get color for a voxel type
-vec3 getVoxelColor(int voxelType) {
-    switch (voxelType) {
-        case DIRT:
-            return vec3(0.6, 0.3, 0.1);
-        case GRASS:
-            return vec3(0.1, 0.8, 0.1);
-        case STONE:
-            return vec3(0.5, 0.5, 0.5);
-        case WOOD:
-            return vec3(0.4, 0.2, 0.1);
-        case LEAVES:
-            return vec3(0.0, 0.5, 0.0);
-        default:
-            return vec3(0.0, 0.0, 0.0);
-    }
-}
-
-// Ray marching function with three-phase approach
-float rayMarch(vec3 ro, vec3 rd, out int hitType) {
-    float dO = 0.0;
-    
-    // First phase: use small fixed steps for close objects
-    for (int i = 0; i < MAX_STEPS/3; i++) {
-        vec3 p = ro + rd * dO;
-        float d = getVoxelSDF(p, hitType);
         
-        if (d < SURF_DIST) {
-            return dO;
-        }
-        
-        // Use fixed small step size for close objects
-        dO += CLOSE_STEP;
-        
-        // Switch to second phase if we're beyond close distance
-        if (dO > CLOSE_DIST) {
+        if (hit_index != -1) {
+            vec3 hit_pos = ro + rd * t;
+            vec3 normal;
+            vec3 cube_min = objects_position[hit_index] - objects_size[hit_index] * 0.5;
+            vec3 cube_max = objects_position[hit_index] + objects_size[hit_index] * 0.5;
+            
+            // Calculate normal
+            vec3 rel_pos = hit_pos - objects_position[hit_index];
+            vec3 abs_pos = abs(rel_pos);
+            if (abs_pos.x > abs_pos.y && abs_pos.x > abs_pos.z) {
+                normal = vec3(sign(rel_pos.x), 0.0, 0.0);
+            } else if (abs_pos.y > abs_pos.z) {
+                normal = vec3(0.0, sign(rel_pos.y), 0.0);
+            } else {
+                normal = vec3(0.0, 0.0, sign(rel_pos.z));
+            }
+            
+            // Update light contribution
+            light += objects_color[hit_index] * emission[hit_index] * contribution;
+            contribution *= objects_color[hit_index];
+            
+            // Update ray direction with roughness
+            vec3 reflected = reflect(rd, normal);
+            rd = mix(reflected, random_in_unit_sphere(seed), roughness[hit_index]);
+            ro = hit_pos + rd * 0.001;
+        } else {
+            // Sky color
+            light += skycolor * contribution;
             break;
         }
     }
     
-    // Second phase: use medium step size for medium distance objects
-    for (int i = 0; i < MAX_STEPS/3; i++) {
-        vec3 p = ro + rd * dO;
-        float d = getVoxelSDF(p, hitType);
-        
-        if (d < SURF_DIST) {
-            return dO;
-        }
-        
-        // Use medium step size for medium distance objects
-        dO += MEDIUM_STEP;
-        
-        // Switch to third phase if we're beyond medium distance
-        if (dO > MEDIUM_DIST) {
-            break;
-        }
-    }
-    
-    // Third phase: use smaller step size for distant objects
-    for (int i = 0; i < MAX_STEPS/3; i++) {
-        vec3 p = ro + rd * dO;
-        float d = getVoxelSDF(p, hitType);
-        
-        if (d < SURF_DIST) {
-            return dO;
-        }
-        
-        // Use smaller step size for distant objects
-        dO += FAR_STEP;
-        
-        if (dO > MAX_DIST) {
-            hitType = AIR;
-            return MAX_DIST;
-        }
-    }
-    
-    hitType = AIR;
-    return MAX_DIST;
-}
-
-// Function to get normal at a point
-vec3 getNormal(vec3 p) {
-    vec2 e = vec2(0.001, 0.0);  // Simple epsilon
-    int dummy;
-    return normalize(vec3(
-        getVoxelSDF(p + e.xyy, dummy) - getVoxelSDF(p - e.xyy, dummy),
-        getVoxelSDF(p + e.yxy, dummy) - getVoxelSDF(p - e.yxy, dummy),
-        getVoxelSDF(p + e.yyx, dummy) - getVoxelSDF(p - e.yyx, dummy)
-    ));
+    return light;
 }
 
 void main() {
@@ -168,41 +161,20 @@ void main() {
     vec2 uv = (vec2(texel_coords) + vec2(0.5)) / screenResolution * 2.0 - 1.0;
     uv.x *= screenResolution.x / screenResolution.y;
     
-    // Ray setup
+    // Ray setup matching compute_shader_cubes.glsl
     vec3 ro = cameraPosition;
     vec3 rd = normalize(cameraDirection + uv.x * cameraRight + uv.y * cameraUp);
     
-    // Ray marching
-    int hitType;
-    float d = rayMarch(ro, rd, hitType);
+    // Random seed based on position and time
+    float seed = float(texel_coords.x * 1973 + texel_coords.y * 9277) + currentTime;
     
-    // Calculate color
-    vec3 col = vec3(0.0);
+    vec3 color = calculate_light(ro, rd, seed);
     
-    if (d < MAX_DIST) {
-        vec3 p = ro + rd * d;
-        vec3 normal = getNormal(p);
-        
-        // Simple lighting
-        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-        float diff = max(dot(normal, lightDir), 0.0);
-        
-        // Basic ambient and diffuse lighting
-        vec3 ambient = vec3(AMBIENT_STRENGTH);
-        vec3 diffuse = vec3(DIFFUSE_STRENGTH) * diff;
-        
-        // Get base color and apply lighting
-        col = getVoxelColor(hitType) * (ambient + diffuse);
-        
-        // Simple fog with reduced density for better far visibility
-        float fog = 1.0 - exp(-d * 0.005);  // Further reduced fog density
-        col = mix(col, vec3(0.5, 0.8, 1.0), fog);
+    if (is_accumulation) {
+        vec4 prev = imageLoad(screen, texel_coords);
+        float frames = prev.a + 1.0;
+        imageStore(screen, texel_coords, vec4(mix(prev.rgb, color, 1.0/frames), frames));
     } else {
-        // Sky color
-        col = vec3(0.5, 0.8, 1.0);
+        imageStore(screen, texel_coords, vec4(color, 1.0));
     }
-    
-    // Output color
-    imageStore(screen, texel_coords, vec4(col, 1.0));
 }
-
