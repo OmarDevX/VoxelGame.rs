@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/home/omar/Desktop/VetracerTemplate/target/debug/build/mime_guess2-241ae8c3ef75990c/out/mime_types_generated.rs

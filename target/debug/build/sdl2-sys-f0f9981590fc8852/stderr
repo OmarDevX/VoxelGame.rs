@@ -1,0 +1,27 @@
+CMake Deprecation Warning at CMakeLists.txt:5 (cmake_minimum_required):
+  Compatibility with CMake < 3.5 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value or use a ...<max> suffix to tell
+  CMake that the project does not need compatibility with older versions.
+
+
+CMake Deprecation Warning at CMakeLists.txt:3147 (cmake_minimum_required):
+  Compatibility with CMake < 3.5 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value or use a ...<max> suffix to tell
+  CMake that the project does not need compatibility with older versions.
+
+
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_ASM_COMPILER
+    CMAKE_ASM_FLAGS
+    CMAKE_CONFIGURATION_TYPES
+
+
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sdl2-sys-0.37.0/SDL/src/video/x11/SDL_x11xinput2.c:189:1: warning: ‘xinput2_remove_device_info’ defined but not used [-Wunused-function]
+  189 | xinput2_remove_device_info(SDL_VideoData *videodata, const int device_id)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~

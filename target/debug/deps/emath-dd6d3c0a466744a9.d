@@ -1,0 +1,13 @@
+/home/omar/Desktop/VetracerTemplate/target/debug/deps/libemath-dd6d3c0a466744a9.rmeta: /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/lib.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/align.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/numeric.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/pos2.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect_transform.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rot2.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/smart_aim.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/vec2.rs
+
+/home/omar/Desktop/VetracerTemplate/target/debug/deps/emath-dd6d3c0a466744a9.d: /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/lib.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/align.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/numeric.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/pos2.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect_transform.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rot2.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/smart_aim.rs /home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/vec2.rs
+
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/lib.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/align.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/numeric.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/pos2.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rect_transform.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/rot2.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/smart_aim.rs:
+/home/omar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/emath-0.17.0/src/vec2.rs:
